@@ -1,4 +1,3 @@
-# chat/consumers.py
 import json
 import jwt
 from channels.generic.websocket import AsyncWebsocketConsumer
@@ -84,18 +83,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
         await self.accept()
         await self.send_message_to_channel(channel_name=self.channel_name, message='connect')
-#        await self.channel_layer.send(
-#                      self.channel_name,
-#                      {
-#                      'type': 'chat_message',
-#                      'username': self.room_group_name,
-#                      'message': 'connect'
-#                      }
-#                )
 
     async def disconnect(self, close_code):
         # Leave room group
-        await self.send_message_to_channel(channel_name=self.channel_name, message='disconnect')
+        await self.send_message_to_channel(channel_name=self.channel_name, 
+                                           message="disconnect")
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name
@@ -118,25 +110,25 @@ class ChatConsumer(AsyncWebsocketConsumer):
             try:
                 username_in_token = (jwt.decode(message[4:], 
                                      settings.SECRET_KEY, algorithms=["HS256"]))['username']
+                if username == username_in_token:
+                    user = await get_user(username=username)
+                    if user.is_authenticated:
+                        self.chanels_dict[self.channel_name] = user.username
+                        await self.channel_layer.send(
+                              self.channel_name,
+                              {
+                              'type': 'chat_message',
+                              'username': username,
+                              'message': 'can send message'
+                              }
+                        )
+                else:
+                    await self.send_message_to_channel(channel_name=self.channel_name, 
+                                                       message="credentals are invalid")
             except Exception as e:
                 print('error:', e)
-                await self.send_message_to_channel(channel_name=self.channel_name, message='disconnect')
-  #              return await self.close()
-            if username == username_in_token:
-                user = await get_user(username=username)
-                if user.is_authenticated:
-                    self.chanels_dict[self.channel_name] = user.username
-                    await self.channel_layer.send(
-                          self.channel_name,
-                          {
-                          'type': 'chat_message',
-                          'username': username,
-                          'message': 'can send message'
-                          }
-                    )
-            else:
-                await self.send_message_to_channel(channel_name=self.channel_name, message='disconnect')
-  #              return await self.close()
+                await self.send_message_to_channel(channel_name=self.channel_name, 
+                                                   message="credentals are invalid")
 
     # Processing message with "history"
         if 'history' in message[:7]:
@@ -169,8 +161,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                       }
                 )
         else:
-            await self.send_message_to_channel(channel_name=self.channel_name, message='disconnect')
-  #          return await self.close()
+            await self.send_message_to_channel(channel_name=self.channel_name, 
+                                               message="can't send message")
 
     # Receive message from room group
     async def chat_message(self, event):

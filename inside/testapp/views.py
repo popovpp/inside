@@ -1,4 +1,3 @@
-# chat/views.py
 from django.shortcuts import render
 import requests
 from django.contrib.auth import authenticate, login
@@ -14,14 +13,16 @@ def chat_client(request):
         if user is not None:
             login(request, user)
         else:
-            return render(request, 'chat/chat_client.html', {'token': 'Username or password is not valid',
-            	                                           'room_name': 'room'})
+            return render(request, 'chat/chat_client.html', 
+                          {'token': 'Username or password is not valid',
+            	           'room_name': 'room'})
 
         jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
         jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
         payload = jwt_payload_handler(user)
         jwt_token = jwt_encode_handler(payload)
-        return render(request, 'chat/chat_client.html', {'token': f'jwt_token: {jwt_token}',
-        	                                           'room_name': 'room', 'username': user.username})
+        return render(request, 'chat/chat_client.html', 
+                      {'token': jwt_token,
+        	          'room_name': 'room', 'username': user.username})
 
     return render(request, 'chat/chat_client.html', {'room_name': 'room'})

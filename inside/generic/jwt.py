@@ -66,6 +66,4 @@ class CustomJWTSerializer(JSONWebTokenSerializer):
 
         return {
             'token': jwt_encode_handler(payload),
- #           'user': user,
- #           'token_lifetime': int(settings.JWT_AUTH['JWT_EXPIRATION_DELTA'].total_seconds())  # seconds
         }

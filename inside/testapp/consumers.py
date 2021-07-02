@@ -136,15 +136,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
             str_list = message.split()
             amount_of_records = int(str_list[1])
             send_list = await read_db(amount_of_records=amount_of_records)
-            async for message_instance in AsyncIteratorWrapper(send_list): 
-                await self.channel_layer.send(
-                      self.channel_name,
-                      {
-                      'type': 'chat_message',
-                      'username': await get_username(message_instance),
-                      'message': await get_message(message_instance)
-                      }
-                )
+            if ((self.channel_name in self.chanels_dict) and 
+                (username == self.chanels_dict[self.channel_name])):
+                async for message_instance in AsyncIteratorWrapper(send_list): 
+                    await self.channel_layer.send(
+                          self.channel_name,
+                          {
+                          'type': 'chat_message',
+                          'username': await get_username(message_instance),
+                          'message': await get_message(message_instance)
+                          }
+                    )
+            else:
+                await self.send_message_to_channel(channel_name=self.channel_name, 
+                                                   message="can't send history message")
         
 
         # Send message to room group

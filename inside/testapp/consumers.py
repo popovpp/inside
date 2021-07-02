@@ -2,8 +2,6 @@
 import json
 import jwt
 from channels.generic.websocket import AsyncWebsocketConsumer
-from asgiref.sync import sync_to_async
-from rest_framework_jwt.settings import api_settings
 from django.contrib.auth.models import User
 from rest_framework.generics import get_object_or_404
 from channels.db import database_sync_to_async
@@ -65,6 +63,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
     
     chanels_dict = {}
 
+    async def send_message_to_channel(self, channel_name=None, message=None):
+        await self.channel_layer.send(
+                      channel_name,
+                      {
+                      'type': 'chat_message',
+                      'username': self.room_group_name,
+                      'message': message
+                      }
+                )
+
     async def connect(self):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = 'chat_%s' % self.room_name
@@ -75,25 +83,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
         await self.accept()
-        await self.channel_layer.send(
-                      self.channel_name,
-                      {
-                      'type': 'chat_message',
-                      'username': self.room_group_name,
-                      'message': 'connect'
-                      }
-                )
+        await self.send_message_to_channel(channel_name=self.channel_name, message='connect')
+#        await self.channel_layer.send(
+#                      self.channel_name,
+#                      {
+#                      'type': 'chat_message',
+#                      'username': self.room_group_name,
+#                      'message': 'connect'
+#                      }
+#                )
 
     async def disconnect(self, close_code):
         # Leave room group
-        await self.channel_layer.send(
-                      self.channel_name,
-                      {
-                      'type': 'chat_message',
-                      'username': self.room_group_name,
-                      'message': 'disconnect'
-                      }
-                )
+        await self.send_message_to_channel(channel_name=self.channel_name, message='disconnect')
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name
@@ -118,7 +120,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                                      settings.SECRET_KEY, algorithms=["HS256"]))['username']
             except Exception as e:
                 print('error:', e)
-                return await self.close()
+                await self.send_message_to_channel(channel_name=self.channel_name, message='disconnect')
+  #              return await self.close()
             if username == username_in_token:
                 user = await get_user(username=username)
                 if user.is_authenticated:
@@ -132,7 +135,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                           }
                     )
             else:
-                return await self.close()
+                await self.send_message_to_channel(channel_name=self.channel_name, message='disconnect')
+  #              return await self.close()
 
     # Processing message with "history"
         if 'history' in message[:7]:
@@ -165,7 +169,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                       }
                 )
         else:
-            return await self.close()
+            await self.send_message_to_channel(channel_name=self.channel_name, message='disconnect')
+  #          return await self.close()
 
     # Receive message from room group
     async def chat_message(self, event):

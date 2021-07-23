@@ -8,8 +8,6 @@ from django.conf import settings
 import asyncio
 
 from testapp.models import Message
-from testapp.kafka import producer
-from testapp.kafka import acked
 
 
 @database_sync_to_async
@@ -85,11 +83,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
         await self.accept()
         await self.send_message_to_channel(channel_name=self.channel_name, message='connect')
-
-        producer.produce('topic', key="key", value="value", callback=acked)
-# Wait up to 1 second for events. Callbacks will be invoked during
-# this method call if the message is acknowledged.
-        producer.poll(1)
 
     async def disconnect(self, close_code):
         # Leave room group
